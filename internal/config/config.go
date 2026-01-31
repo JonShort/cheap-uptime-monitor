@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	DefaultIntervalMinutes = 15
-	DefaultTimeoutSeconds  = 30
+	DefaultTimeoutSeconds = 30
 )
 
 type Configuration struct {
@@ -20,11 +19,10 @@ type Configuration struct {
 }
 
 type Endpoint struct {
-	Name            string            `json:"name"`
-	URL             string            `json:"url"`
-	IntervalMinutes int               `json:"interval_minutes,omitempty"`
-	TimeoutSeconds  int               `json:"timeout_seconds,omitempty"`
-	Headers         map[string]string `json:"headers,omitempty"`
+	Name           string            `json:"name"`
+	URL            string            `json:"url"`
+	TimeoutSeconds int               `json:"timeout_seconds,omitempty"`
+	Headers        map[string]string `json:"headers,omitempty"`
 }
 
 func (e *Endpoint) GetTimeout() int {
@@ -32,13 +30,6 @@ func (e *Endpoint) GetTimeout() int {
 		return e.TimeoutSeconds
 	}
 	return DefaultTimeoutSeconds
-}
-
-func (e *Endpoint) GetInterval() int {
-	if e.IntervalMinutes > 0 {
-		return e.IntervalMinutes
-	}
-	return DefaultIntervalMinutes
 }
 
 type S3Client interface {
@@ -103,9 +94,6 @@ func (c *Configuration) Validate() error {
 		}
 		if ep.TimeoutSeconds < 0 || ep.TimeoutSeconds > 60 {
 			return fmt.Errorf("endpoint %d (%s): timeout_seconds must be between 0 and 60", i, ep.Name)
-		}
-		if ep.IntervalMinutes < 0 || ep.IntervalMinutes > 1440 {
-			return fmt.Errorf("endpoint %d (%s): interval_minutes must be between 0 and 1440", i, ep.Name)
 		}
 	}
 

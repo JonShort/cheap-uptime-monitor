@@ -18,9 +18,10 @@ The uptime monitor reads its configuration from a JSON file stored in S3. This d
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Human-readable name for the endpoint (used in alerts) |
 | `url` | `string` | Yes | - | Full HTTPS URL to check (must start with `https://`) |
-| `interval_minutes` | `integer` | No | `15` | How often to check this endpoint (minimum: 1) |
 | `timeout_seconds` | `integer` | No | `30` | Request timeout before marking as failed (minimum: 1, maximum: 60) |
 | `headers` | `object` | No | `{}` | Custom HTTP headers to include in the request |
+
+> **Note:** All endpoints are checked at the same interval, configured via Terraform's `check_interval_minutes` variable (default: 15 minutes).
 
 ### Headers Object
 
@@ -64,13 +65,6 @@ The uptime monitor reads its configuration from a JSON file stored in S3. This d
           "description": "HTTPS URL to monitor",
           "pattern": "^https://",
           "format": "uri"
-        },
-        "interval_minutes": {
-          "type": "integer",
-          "description": "Check interval in minutes",
-          "default": 15,
-          "minimum": 1,
-          "maximum": 1440
         },
         "timeout_seconds": {
           "type": "integer",
@@ -116,7 +110,6 @@ The uptime monitor reads its configuration from a JSON file stored in S3. This d
     {
       "name": "Production API",
       "url": "https://api.example.com/health",
-      "interval_minutes": 5,
       "timeout_seconds": 10,
       "headers": {
         "X-Health-Check": "monitoring-service",
@@ -126,13 +119,11 @@ The uptime monitor reads its configuration from a JSON file stored in S3. This d
     {
       "name": "Marketing Website",
       "url": "https://www.example.com/",
-      "interval_minutes": 15,
       "timeout_seconds": 30
     },
     {
       "name": "Staging API",
       "url": "https://staging-api.example.com/health",
-      "interval_minutes": 30,
       "headers": {
         "X-Environment": "staging"
       }
@@ -162,9 +153,8 @@ The uptime monitor reads its configuration from a JSON file stored in S3. This d
 
 1. **URL must be HTTPS** - HTTP URLs are not supported for security reasons
 2. **Name must be unique** - Each endpoint should have a distinct name for clear alerting
-3. **Interval minimum is 1 minute** - More frequent checks are not supported
-4. **Timeout cannot exceed 60 seconds** - Lambda has execution limits
-5. **Headers are optional** - Only include if the endpoint requires authentication or custom headers
+3. **Timeout cannot exceed 60 seconds** - Lambda has execution limits
+4. **Headers are optional** - Only include if the endpoint requires authentication or custom headers
 
 ## Security Considerations
 

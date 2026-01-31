@@ -30,7 +30,6 @@ func TestLoader_Load_Success(t *testing.T) {
 			{
 				"name": "Test API",
 				"url": "https://api.example.com/health",
-				"interval_minutes": 5,
 				"timeout_seconds": 10,
 				"headers": {
 					"X-Test": "value"
@@ -57,9 +56,6 @@ func TestLoader_Load_Success(t *testing.T) {
 	}
 	if ep.URL != "https://api.example.com/health" {
 		t.Errorf("expected url 'https://api.example.com/health', got '%s'", ep.URL)
-	}
-	if ep.IntervalMinutes != 5 {
-		t.Errorf("expected interval 5, got %d", ep.IntervalMinutes)
 	}
 	if ep.TimeoutSeconds != 10 {
 		t.Errorf("expected timeout 10, got %d", ep.TimeoutSeconds)
@@ -145,15 +141,6 @@ func TestConfiguration_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "invalid interval",
-			config: Configuration{
-				Endpoints: []Endpoint{
-					{Name: "Test", URL: "https://example.com", IntervalMinutes: 2000},
-				},
-			},
-			wantErr: true,
-		},
 	}
 
 	for _, tt := range tests {
@@ -193,29 +180,3 @@ func TestEndpoint_GetTimeout(t *testing.T) {
 	}
 }
 
-func TestEndpoint_GetInterval(t *testing.T) {
-	tests := []struct {
-		name     string
-		endpoint Endpoint
-		want     int
-	}{
-		{
-			name:     "default interval",
-			endpoint: Endpoint{},
-			want:     DefaultIntervalMinutes,
-		},
-		{
-			name:     "custom interval",
-			endpoint: Endpoint{IntervalMinutes: 5},
-			want:     5,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.endpoint.GetInterval(); got != tt.want {
-				t.Errorf("GetInterval() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}

@@ -53,7 +53,7 @@ Cheap Uptime Monitor is a serverless HTTPS endpoint health checker built on AWS.
 - **Timeout:** 30 seconds default, configurable per endpoint
 - **Redirects:** Do not follow (3xx = failure)
 - **Custom headers:** Supported per endpoint
-- **Default interval:** 15 minutes, configurable per endpoint
+- **Check interval:** Set globally via Terraform (default 15 minutes)
 
 ## Alert Content
 
@@ -73,7 +73,6 @@ Endpoints are configured via JSON in S3. See `Architecture/config-schema.md` for
     {
       "name": "Production API",
       "url": "https://api.example.com/health",
-      "interval_minutes": 15,
       "timeout_seconds": 30,
       "headers": {
         "X-Health-Check": "monitor"
@@ -137,6 +136,36 @@ eval "$(aws configure export-credentials --format env)"
 ```
 
 This exports `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` to the current shell.
+
+## Updating the Stack
+
+### Endpoint Config Changes
+Upload to S3 - takes effect on next scheduled run:
+```bash
+make upload-config
+```
+
+### Lambda Code Changes
+Rebuild and redeploy (Terraform detects zip hash change):
+```bash
+make build
+cd terraform && terraform apply
+```
+
+### Infrastructure Changes
+Edit Terraform files, then:
+```bash
+cd terraform
+terraform plan    # Preview
+terraform apply   # Apply
+```
+
+| Change | Command |
+|--------|---------|
+| Add/remove endpoints | `make upload-config` |
+| Update Lambda code | `make build && cd terraform && terraform apply` |
+| Change check interval | `terraform apply -var="check_interval_minutes=N"` |
+| Change alert email | `terraform apply -var="alert_email=..."` |
 
 ## Testing
 

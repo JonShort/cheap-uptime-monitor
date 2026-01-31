@@ -8,7 +8,7 @@ A minimal, serverless HTTPS endpoint health checker built on AWS. Checks your en
 - **Simple config** - JSON file in S3, no database required
 - **Email alerts** - SNS notifications when endpoints fail
 - **Custom headers** - Support for authenticated health checks
-- **Configurable** - Per-endpoint intervals and timeouts
+- **Configurable** - Per-endpoint timeouts and global check interval
 
 ## Cost
 
@@ -72,7 +72,6 @@ Endpoints are defined in `config/config.json`:
     {
       "name": "Production API",
       "url": "https://api.example.com/health",
-      "interval_minutes": 15,
       "timeout_seconds": 30,
       "headers": {
         "Authorization": "Bearer your-token"
@@ -86,9 +85,10 @@ Endpoints are defined in `config/config.json`:
 |-------|----------|---------|-------------|
 | `name` | Yes | - | Display name for alerts |
 | `url` | Yes | - | HTTPS URL to check |
-| `interval_minutes` | No | 15 | Check frequency (1-1440) |
 | `timeout_seconds` | No | 30 | Request timeout (1-60) |
 | `headers` | No | {} | Custom HTTP headers |
+
+> **Note:** Check interval is set globally via Terraform (`check_interval_minutes`, default 15).
 
 See [Architecture/config-schema.md](Architecture/config-schema.md) for the full schema.
 
@@ -126,6 +126,33 @@ make test           # Run tests
 make upload-config  # Upload config to S3
 make clean          # Remove build artifacts
 ```
+
+## Updating
+
+### Endpoint Changes (add/remove/modify endpoints)
+
+Edit `config/config.json` and upload - takes effect on next scheduled run:
+
+```bash
+make upload-config
+```
+
+### Code Changes
+
+Rebuild and redeploy the Lambda:
+
+```bash
+make build
+cd terraform && terraform apply
+```
+
+### Infrastructure Changes
+
+| Change | Command |
+|--------|---------|
+| Check interval | `terraform apply -var="check_interval_minutes=5"` |
+| Alert email | `terraform apply -var="alert_email=new@example.com"` |
+| Other infra | Edit `terraform/*.tf`, then `terraform apply` |
 
 ## Tear Down
 

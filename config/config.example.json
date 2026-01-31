@@ -1,0 +1,19 @@
+{
+  "endpoints": [
+    {
+      "name": "Example API Health",
+      "url": "https://api.example.com/health",
+      "interval_minutes": 15,
+      "timeout_seconds": 30,
+      "headers": {
+        "X-Health-Check": "cheap-uptime-monitor"
+      }
+    },
+    {
+      "name": "Example Website",
+      "url": "https://www.example.com/",
+      "interval_minutes": 15,
+      "timeout_seconds": 30
+    }
+  ]
+}

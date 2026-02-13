@@ -6,7 +6,7 @@ A minimal, serverless HTTPS endpoint health checker built on AWS. Checks your en
 
 - **Serverless** - Lambda + EventBridge, pay only for what you use
 - **Simple config** - JSON file in S3, no database required
-- **Email alerts** - SNS notifications when endpoints fail
+- **Smart alerts** - DOWN and RECOVERED notifications only on state transitions (no duplicate alerts)
 - **Custom headers** - Support for authenticated health checks
 - **Configurable** - Per-endpoint timeouts and global check interval
 
@@ -101,7 +101,7 @@ See [Architecture/config-schema.md](Architecture/config-schema.md) for the full 
 
 ## Alert Format
 
-When an endpoint fails, you'll receive an email like:
+When an endpoint goes down, you'll receive:
 
 ```
 Subject: ALERT: Production API is DOWN
@@ -117,6 +117,24 @@ Timestamp: 2024-01-15 10:30:00 UTC
 --
 Cheap Uptime Monitor
 ```
+
+When it recovers:
+
+```
+Subject: RECOVERED: Production API is UP
+
+Uptime Monitor Recovery
+
+Endpoint: Production API
+URL: https://api.example.com/health
+Status: UP
+Timestamp: 2024-01-15 10:45:00 UTC
+
+--
+Cheap Uptime Monitor
+```
+
+Alerts only fire on state transitions — you won't get repeated emails while an endpoint stays down.
 
 ## Commands
 

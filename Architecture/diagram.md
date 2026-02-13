@@ -14,7 +14,7 @@ flowchart TB
         end
 
         subgraph Storage["Storage"]
-            S3[(S3 Bucket<br/>Configuration)]
+            S3[(S3 Bucket<br/>Config + Known Health)]
         end
 
         subgraph Notifications["Notifications"]
@@ -37,14 +37,15 @@ flowchart TB
 
     %% Flow
     EB -->|"Triggers<br/>(configurable interval)"| Lambda
-    Lambda -->|"Read config"| S3
+    Lambda -->|"Read config +<br/>known health"| S3
+    Lambda -->|"Write<br/>known health"| S3
     IAM -.->|"Grants access"| Lambda
     IAM -.->|"Grants access"| S3
     IAM -.->|"Grants access"| SNS
     Lambda -->|"HTTPS GET<br/>(30s timeout)"| EP1
     Lambda -->|"HTTPS GET"| EP2
     Lambda -->|"HTTPS GET"| EP3
-    Lambda -->|"Publish failure"| SNS
+    Lambda -->|"Publish DOWN /<br/>RECOVERED"| SNS
     SNS -->|"Deliver alert"| Email
     Email -->|"Notification"| Operator
 
@@ -70,7 +71,7 @@ flowchart TB
 sequenceDiagram
     participant EB as EventBridge
     participant Lambda as Lambda (Go)
-    participant S3 as S3 Config
+    participant S3 as S3 Bucket
     participant Endpoint as Target Endpoint
     participant SNS as SNS Topic
     participant Email as Email
@@ -78,17 +79,29 @@ sequenceDiagram
     EB->>Lambda: Trigger (scheduled)
     Lambda->>S3: GetObject (config.json)
     S3-->>Lambda: Endpoint configuration
+    Lambda->>S3: GetObject (known-health.json)
+    S3-->>Lambda: Known health (or empty if first run)
 
     loop For each endpoint
         Lambda->>Endpoint: HTTPS GET (with headers)
-        alt Success (200 OK)
-            Endpoint-->>Lambda: 200 OK
-            Note over Lambda: No action needed
-        else Failure (timeout/error/non-200)
+        alt Status unchanged
+            Note over Lambda: No alert
+        else UP/UNKNOWN → DOWN
             Endpoint-->>Lambda: Error or non-200
-            Lambda->>SNS: Publish alert message
+            Lambda->>SNS: Publish DOWN alert
             SNS->>Email: Deliver notification
+        else DOWN → UP
+            Endpoint-->>Lambda: 200 OK
+            Lambda->>SNS: Publish RECOVERED alert
+            SNS->>Email: Deliver notification
+        else UNKNOWN → UP (first run)
+            Endpoint-->>Lambda: 200 OK
+            Note over Lambda: Record status, no alert
         end
+    end
+
+    opt Any status changed
+        Lambda->>S3: PutObject (known-health.json)
     end
 ```
 
@@ -176,25 +189,34 @@ flowchart TB
     end
 
     Lambda --> Endpoints
-    Role -->|"s3:GetObject"| S3
+    Role -->|"s3:GetObject,<br/>s3:PutObject"| S3
     Role -->|"sns:Publish"| SNS
     Role -->|"logs:*"| CW
 
-    S3 -.-|"Bucket Policy:<br/>Lambda Role Only"| Role
+    S3 -.-|"Bucket Policy:<br/>Lambda Role Only<br/>(Get + Put)"| Role
 ```
 
 ## Alert Message Format
 
 ```mermaid
 flowchart LR
-    subgraph Alert["SNS Alert Content"]
+    subgraph DownAlert["DOWN Alert"]
         direction TB
-        A1["Endpoint Name"]
-        A2["URL"]
-        A3["Failure Reason"]
-        A4["Timestamp (UTC)"]
+        D1["Endpoint Name"]
+        D2["URL"]
+        D3["Failure Reason"]
+        D4["Timestamp (UTC)"]
     end
 
-    Lambda -->|"JSON"| Alert
-    Alert -->|"Formatted"| Email[Email Delivery]
+    subgraph RecoveryAlert["RECOVERED Alert"]
+        direction TB
+        R1["Endpoint Name"]
+        R2["URL"]
+        R3["Timestamp (UTC)"]
+    end
+
+    Lambda -->|"State transition"| DownAlert
+    Lambda -->|"State transition"| RecoveryAlert
+    DownAlert -->|"Formatted"| Email[Email Delivery]
+    RecoveryAlert -->|"Formatted"| Email
 ```

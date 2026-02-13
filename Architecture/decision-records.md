@@ -92,8 +92,7 @@ Publish failure alerts to an SNS topic, initially configured for email delivery.
 
 ### Consequences
 - Email alerts require subscription confirmation
-- No built-in rate limiting (could get spammed if endpoint flaps)
-- Future: may need to add state tracking to suppress duplicate alerts
+- Duplicate alert suppression handled by known health tracking (see ADR-012)
 
 ---
 
@@ -159,7 +158,7 @@ Use Terraform with the AWS provider for all infrastructure management.
 Define what constitutes a "healthy" endpoint and how checks should behave.
 
 ### Decision
-- **Success criteria:** HTTP 200 status code with response body "OK" (case-sensitive)
+- **Success criteria:** HTTP 200 status code only
 - **Timeout:** 30 seconds default, configurable per endpoint
 - **Redirects:** Do not follow (3xx responses are treated as failures)
 - **Custom headers:** Supported per endpoint for authentication or identification

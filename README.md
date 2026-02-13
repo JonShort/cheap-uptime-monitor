@@ -41,7 +41,7 @@ make build
 # 4. Deploy infrastructure
 cd terraform
 terraform init
-terraform plan
+terraform plan -var="alert_email=you@example.com"
 terraform apply -var="alert_email=you@example.com"
 ```
 

@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context) error {
 				"reason", result.Reason,
 				"previous_status", string(previousStatus),
 			)
-			if err := h.alerter.SendAlert(ctx, endpoint, result); err != nil {
+			if err := h.alerter.SendDownAlert(ctx, endpoint, result); err != nil {
 				h.logger.Error("failed to send alert",
 					"name", endpoint.Name,
 					"error", err,

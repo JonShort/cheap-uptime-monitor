@@ -29,7 +29,7 @@ func NewAlerter(snsClient SNSClient, topicARN string, logger *slog.Logger) *Aler
 	}
 }
 
-func (a *Alerter) SendAlert(ctx context.Context, endpoint config.Endpoint, result checker.Result) error {
+func (a *Alerter) SendDownAlert(ctx context.Context, endpoint config.Endpoint, result checker.Result) error {
 	subject := fmt.Sprintf("ALERT: %s is DOWN", endpoint.Name)
 
 	message := fmt.Sprintf(`Uptime Monitor Alert

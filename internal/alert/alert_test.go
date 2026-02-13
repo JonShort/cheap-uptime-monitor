@@ -32,7 +32,7 @@ func newTestAlerter(client *mockSNSClient) *Alerter {
 	return NewAlerter(client, "arn:aws:sns:us-east-1:123456789:test-topic", logger)
 }
 
-func TestAlerter_SendAlert_Success(t *testing.T) {
+func TestAlerter_SendDownAlert_Success(t *testing.T) {
 	client := &mockSNSClient{}
 	alerter := newTestAlerter(client)
 
@@ -47,7 +47,7 @@ func TestAlerter_SendAlert_Success(t *testing.T) {
 		Timestamp: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
 	}
 
-	err := alerter.SendAlert(context.Background(), endpoint, result)
+	err := alerter.SendDownAlert(context.Background(), endpoint, result)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestAlerter_SendAlert_Success(t *testing.T) {
 	}
 }
 
-func TestAlerter_SendAlert_SNSError(t *testing.T) {
+func TestAlerter_SendDownAlert_SNSError(t *testing.T) {
 	client := &mockSNSClient{err: errors.New("SNS publish failed")}
 	alerter := newTestAlerter(client)
 
@@ -98,13 +98,13 @@ func TestAlerter_SendAlert_SNSError(t *testing.T) {
 		Timestamp: time.Now().UTC(),
 	}
 
-	err := alerter.SendAlert(context.Background(), endpoint, result)
+	err := alerter.SendDownAlert(context.Background(), endpoint, result)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
 }
 
-func TestAlerter_SendAlert_MessageFormat(t *testing.T) {
+func TestAlerter_SendDownAlert_MessageFormat(t *testing.T) {
 	client := &mockSNSClient{}
 	alerter := newTestAlerter(client)
 
@@ -120,7 +120,7 @@ func TestAlerter_SendAlert_MessageFormat(t *testing.T) {
 		Timestamp:  time.Date(2024, 6, 20, 14, 45, 30, 0, time.UTC),
 	}
 
-	err := alerter.SendAlert(context.Background(), endpoint, result)
+	err := alerter.SendDownAlert(context.Background(), endpoint, result)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

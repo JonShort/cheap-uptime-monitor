@@ -99,7 +99,7 @@ Publish failure alerts to an SNS topic, initially configured for email delivery.
 
 ## ADR-005: Stateless Design (Initial Implementation)
 
-**Status:** Accepted
+**Status:** Superseded by ADR-012
 **Date:** 2026-01-31
 
 ### Context
@@ -279,3 +279,33 @@ Prefix all AWS resources with `cheap-uptime-monitor-`.
 - `cheap-uptime-monitor-config-bucket`
 - `cheap-uptime-monitor-alerts-topic`
 - `cheap-uptime-monitor-scheduler`
+
+---
+
+## ADR-012: S3-Based Known Health Tracking
+
+**Status:** Accepted
+**Date:** 2026-02-13
+
+### Context
+The stateless design (ADR-005) caused duplicate DOWN alerts when an endpoint stayed down across multiple checks, and made recovery notifications impossible.
+
+### Decision
+Track the last known health of each endpoint in a `known-health.json` file in the existing S3 config bucket. Alert only on state transitions:
+- **UP/UNKNOWN to DOWN:** Send DOWN alert
+- **DOWN to UP:** Send RECOVERED alert
+- **Same status:** No alert
+- **UNKNOWN to UP:** Record status, no alert (first run)
+
+### Rationale
+- Eliminates duplicate DOWN alerts for persistently failing endpoints
+- Enables recovery notifications without a database
+- Reuses the existing S3 config bucket (no new infrastructure)
+- Minimal additional cost (one extra S3 read/write per invocation)
+- Avoids "state" terminology — uses "known health" to reflect that this is a cache of last-observed status, not authoritative state
+
+### Consequences
+- Lambda IAM role now requires `s3:PutObject` in addition to `s3:GetObject`
+- First invocation after deployment treats all endpoints as UNKNOWN
+- If the known health file is deleted, the system resets gracefully (all endpoints become UNKNOWN)
+- Supersedes ADR-005

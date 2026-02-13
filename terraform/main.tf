@@ -105,10 +105,11 @@ data "aws_iam_policy_document" "lambda_permissions" {
     resources = ["arn:aws:logs:*:*:*"]
   }
 
-  # S3 - Read config only
+  # S3 - Read config and read/write known health
   statement {
     actions = [
       "s3:GetObject",
+      "s3:PutObject",
     ]
     resources = [
       "${aws_s3_bucket.config.arn}/*",
@@ -148,6 +149,7 @@ data "aws_iam_policy_document" "config_bucket_policy" {
 
     actions = [
       "s3:GetObject",
+      "s3:PutObject",
     ]
 
     resources = [
@@ -180,6 +182,7 @@ resource "aws_lambda_function" "monitor" {
     variables = {
       CONFIG_BUCKET = aws_s3_bucket.config.id
       CONFIG_KEY    = var.config_key
+      HEALTH_KEY    = var.health_key
       SNS_TOPIC_ARN = aws_sns_topic.alerts.arn
     }
   }

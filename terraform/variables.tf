@@ -10,6 +10,12 @@ variable "config_key" {
   default     = "config.json"
 }
 
+variable "health_key" {
+  description = "S3 key for the known health tracking file"
+  type        = string
+  default     = "known-health.json"
+}
+
 variable "check_interval_minutes" {
   description = "Default interval in minutes between health checks"
   type        = number

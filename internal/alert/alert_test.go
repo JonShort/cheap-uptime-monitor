@@ -143,3 +143,72 @@ func TestAlerter_SendAlert_MessageFormat(t *testing.T) {
 		}
 	}
 }
+
+func TestAlerter_SendRecoveryAlert_Success(t *testing.T) {
+	client := &mockSNSClient{}
+	alerter := newTestAlerter(client)
+
+	endpoint := config.Endpoint{
+		Name: "Production API",
+		URL:  "https://api.example.com/health",
+	}
+
+	result := checker.Result{
+		Success:    true,
+		StatusCode: 200,
+		Timestamp:  time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
+	}
+
+	err := alerter.SendRecoveryAlert(context.Background(), endpoint, result)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if client.publishInput == nil {
+		t.Fatal("expected Publish to be called")
+	}
+
+	subject := *client.publishInput.Subject
+	if !strings.Contains(subject, "RECOVERED") {
+		t.Errorf("subject should contain RECOVERED: %s", subject)
+	}
+	if !strings.Contains(subject, "Production API") {
+		t.Errorf("subject should contain endpoint name: %s", subject)
+	}
+
+	message := *client.publishInput.Message
+	expectedParts := []string{
+		"Uptime Monitor Recovery",
+		"Endpoint: Production API",
+		"URL: https://api.example.com/health",
+		"Status: UP",
+		"Timestamp: 2024-01-15 10:30:00 UTC",
+		"Cheap Uptime Monitor",
+	}
+
+	for _, part := range expectedParts {
+		if !strings.Contains(message, part) {
+			t.Errorf("message should contain '%s', got:\n%s", part, message)
+		}
+	}
+}
+
+func TestAlerter_SendRecoveryAlert_SNSError(t *testing.T) {
+	client := &mockSNSClient{err: errors.New("SNS publish failed")}
+	alerter := newTestAlerter(client)
+
+	endpoint := config.Endpoint{
+		Name: "Test",
+		URL:  "https://example.com",
+	}
+
+	result := checker.Result{
+		Success:   true,
+		Timestamp: time.Now().UTC(),
+	}
+
+	err := alerter.SendRecoveryAlert(context.Background(), endpoint, result)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}

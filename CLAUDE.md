@@ -89,12 +89,23 @@ Endpoints are configured via JSON in S3. See `Architecture/config-schema.md` for
 - No hardcoded credentials in code or Terraform
 - Sensitive header values are stored in S3 config (consider Secrets Manager for future enhancement)
 
+## Known Health Tracking
+
+The monitor tracks the last known health of each endpoint in `known-health.json` in the S3 config bucket. Alerts are only sent on state transitions:
+
+- **UP/UNKNOWN → DOWN:** DOWN alert sent
+- **DOWN → UP:** RECOVERED alert sent
+- **Same status:** No alert
+- **UNKNOWN → UP:** Status recorded, no alert (first run)
+
+If the known health file is missing (first run or deleted), all endpoints start as UNKNOWN.
+
 ## Key Decisions
 
 All architectural decisions are documented in `Architecture/decision-records.md`. Key points:
 
-1. Stateless design - alerts on every failure, no duplicate suppression
-2. No recovery notifications (would require state)
+1. Known health tracking in S3 — alerts only on state transitions (supersedes original stateless design)
+2. Recovery notifications when endpoints come back up
 3. Strict 200 OK requirement (not 2xx)
 4. Don't follow redirects
 5. Single Lambda checks all endpoints per invocation

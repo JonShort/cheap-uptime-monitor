@@ -29,7 +29,7 @@ func NewAlerter(snsClient SNSClient, topicARN string, logger *slog.Logger) *Aler
 	}
 }
 
-func (a *Alerter) SendAlert(ctx context.Context, endpoint config.Endpoint, result checker.Result) error {
+func (a *Alerter) SendDownAlert(ctx context.Context, endpoint config.Endpoint, result checker.Result) error {
 	subject := fmt.Sprintf("ALERT: %s is DOWN", endpoint.Name)
 
 	message := fmt.Sprintf(`Uptime Monitor Alert
@@ -53,6 +53,36 @@ Cheap Uptime Monitor`, endpoint.Name, endpoint.URL, result.Reason, result.Timest
 	}
 
 	a.logger.Info("alert sent",
+		"endpoint", endpoint.Name,
+		"topic", a.topicARN,
+	)
+
+	return nil
+}
+
+func (a *Alerter) SendRecoveryAlert(ctx context.Context, endpoint config.Endpoint, result checker.Result) error {
+	subject := fmt.Sprintf("RECOVERED: %s is UP", endpoint.Name)
+
+	message := fmt.Sprintf(`Uptime Monitor Recovery
+
+Endpoint: %s
+URL: %s
+Status: UP
+Timestamp: %s
+
+--
+Cheap Uptime Monitor`, endpoint.Name, endpoint.URL, result.Timestamp.Format("2006-01-02 15:04:05 UTC"))
+
+	_, err := a.snsClient.Publish(ctx, &sns.PublishInput{
+		TopicArn: aws.String(a.topicARN),
+		Subject:  aws.String(subject),
+		Message:  aws.String(message),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to publish recovery to SNS: %w", err)
+	}
+
+	a.logger.Info("recovery alert sent",
 		"endpoint", endpoint.Name,
 		"topic", a.topicARN,
 	)

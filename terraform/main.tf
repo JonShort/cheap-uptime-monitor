@@ -116,6 +116,16 @@ data "aws_iam_policy_document" "lambda_permissions" {
     ]
   }
 
+  # S3 - ListBucket needed to distinguish missing objects (404) from access denied (403)
+  statement {
+    actions = [
+      "s3:ListBucket",
+    ]
+    resources = [
+      aws_s3_bucket.config.arn,
+    ]
+  }
+
   # SNS - Publish alerts
   statement {
     actions = [
@@ -139,7 +149,7 @@ resource "aws_iam_role_policy" "lambda" {
 
 data "aws_iam_policy_document" "config_bucket_policy" {
   statement {
-    sid    = "AllowLambdaAccess"
+    sid    = "AllowLambdaObjectAccess"
     effect = "Allow"
 
     principals {
@@ -154,6 +164,24 @@ data "aws_iam_policy_document" "config_bucket_policy" {
 
     resources = [
       "${aws_s3_bucket.config.arn}/*",
+    ]
+  }
+
+  statement {
+    sid    = "AllowLambdaListBucket"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = [aws_iam_role.lambda.arn]
+    }
+
+    actions = [
+      "s3:ListBucket",
+    ]
+
+    resources = [
+      aws_s3_bucket.config.arn,
     ]
   }
 }

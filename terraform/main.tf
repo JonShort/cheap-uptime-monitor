@@ -24,6 +24,8 @@ locals {
   prefix = "cheap-uptime-monitor"
 }
 
+data "aws_caller_identity" "current" {}
+
 # -----------------------------------------------------------------------------
 # S3 Bucket for Configuration
 # -----------------------------------------------------------------------------
@@ -183,6 +185,52 @@ data "aws_iam_policy_document" "config_bucket_policy" {
     resources = [
       aws_s3_bucket.config.arn,
     ]
+  }
+
+  statement {
+    sid    = "DenyCrossAccountAccess"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = ["s3:*"]
+
+    resources = [
+      aws_s3_bucket.config.arn,
+      "${aws_s3_bucket.config.arn}/*",
+    ]
+
+    condition {
+      test     = "StringNotEquals"
+      variable = "aws:PrincipalAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+  }
+
+  statement {
+    sid    = "EnforceTLS"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = ["s3:*"]
+
+    resources = [
+      aws_s3_bucket.config.arn,
+      "${aws_s3_bucket.config.arn}/*",
+    ]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
   }
 }
 

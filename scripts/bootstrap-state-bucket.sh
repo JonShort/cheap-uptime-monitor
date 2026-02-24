@@ -10,6 +10,7 @@ set -euo pipefail
 
 BUCKET_NAME="cheap-uptime-monitor-tf-state"
 REGION="${AWS_REGION:-eu-west-1}"
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 echo "Creating Terraform state bucket: ${BUCKET_NAME} in ${REGION}"
 
@@ -36,11 +37,26 @@ aws s3api put-bucket-encryption \
   --server-side-encryption-configuration \
     '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"},"BucketKeyEnabled":true}]}'
 
-echo "Adding bucket policy to enforce SSL/TLS..."
+echo "Adding bucket policy (deny cross-account access + enforce TLS)..."
 cat <<EOF | aws s3api put-bucket-policy --bucket "${BUCKET_NAME}" --policy file:///dev/stdin
 {
   "Version": "2012-10-17",
   "Statement": [
+    {
+      "Sid": "DenyCrossAccountAccess",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::${BUCKET_NAME}",
+        "arn:aws:s3:::${BUCKET_NAME}/*"
+      ],
+      "Condition": {
+        "StringNotEquals": {
+          "aws:PrincipalAccount": "${ACCOUNT_ID}"
+        }
+      }
+    },
     {
       "Sid": "EnforceTLS",
       "Effect": "Deny",
@@ -66,6 +82,7 @@ echo ""
 echo "Security features enabled:"
 echo "  - Versioning (recover previous state files)"
 echo "  - Public access blocked"
+echo "  - Access restricted to account ${ACCOUNT_ID} only"
 echo "  - Server-side encryption (AES256)"
 echo "  - TLS required for all requests"
 echo ""

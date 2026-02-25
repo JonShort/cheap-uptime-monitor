@@ -21,3 +21,8 @@ variable "check_interval_minutes" {
   type        = number
   default     = 15
 }
+
+variable "github_repo" {
+  description = "GitHub repository in owner/repo format for OIDC trust policy"
+  type        = string
+}

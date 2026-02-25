@@ -17,7 +17,6 @@ bootstrap
 *.tfstate
 *.tfstate.*
 *.tfplan
-.terraform.lock.hcl
 
 # Configuration (may contain secrets)
 config/config.json

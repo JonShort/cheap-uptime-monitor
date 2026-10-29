@@ -25,6 +25,7 @@ locals {
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 # -----------------------------------------------------------------------------
 # S3 Bucket for Configuration
@@ -99,12 +100,20 @@ resource "aws_iam_role" "lambda" {
 data "aws_iam_policy_document" "lambda_permissions" {
   # CloudWatch Logs
   statement {
+    actions = ["logs:CreateLogGroup"]
+    resources = [
+      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${aws_lambda_function.monitor.function_name}",
+    ]
+  }
+
+  statement {
     actions = [
-      "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resources = ["arn:aws:logs:*:*:*"]
+    resources = [
+      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${aws_lambda_function.monitor.function_name}:log-stream:*",
+    ]
   }
 
   # S3 - Read config and read/write known health
